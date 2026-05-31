@@ -1,34 +1,32 @@
-"""Export the SimpleModel from PyTorch to ONNX."""
-
-from __future__ import annotations
-
-from pathlib import Path
-
 import torch
-
-from infer_pytorch import build_model, demo_input
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-ONNX_PATH = PROJECT_ROOT / "model.onnx"
+import torch.nn as nn
 
 
-def main() -> None:
-    model = build_model()
-    x = demo_input()
+class SimpleModle(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 2))
+
+    def forward(self, x):
+        return self.net(x)
+
+
+def main():
+    model = SimpleModle()
+    model.eval()
+
+    dummy_input = torch.randn(1, 4)
 
     torch.onnx.export(
         model,
-        x,
-        ONNX_PATH,
+        dummy_input,
+        "model.onnx",
         input_names=["input"],
         output_names=["output"],
-        dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
         opset_version=17,
     )
 
-    print("dummy input shape:", tuple(x.shape))
-    print(f"exported ONNX model: {ONNX_PATH}")
+    print("Export the model.onnx.")
 
 
 if __name__ == "__main__":
