@@ -1,48 +1,41 @@
-"""Run one forward inference with a tiny PyTorch model."""
-
-from __future__ import annotations
-
 import torch
-from torch import nn
+import torch.nn as nn
 
-
-class SimpleModel(nn.Module):
-    """A small MLP used only to demonstrate inference and ONNX export."""
-
-    def __init__(self) -> None:
+class SimpleModel(nn.Module ):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        self.layers = nn.Sequential(
-            nn.Linear(4, 8),
-            nn.ReLU(),
-            nn.Linear(8, 2),
-        )
+        
+        self.layer1=nn.Linear(4,8)
+        self.relu=nn.ReLU()
+        self.layer2=nn.Linear(8,2)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layers(x)
+    def forward(self,X  ):
+        print("input:", X.shape)
+        
+        X=self.layer1(X)
+        print("after layer1:", X.shape)
 
+        X=self.relu(X)
+        print("after relu:", X.shape)
 
-def build_model() -> SimpleModel:
-    torch.manual_seed(42)
-    model = SimpleModel()
+        X=self.layer2(X)
+        print("after layer2:", X.shape)
+
+        return X
+
+def main():
+    model=SimpleModel
     model.eval()
-    return model
 
+    x=torch.randn(1,4)
 
-def demo_input() -> torch.Tensor:
-    return torch.tensor([[0.2, 0.4, 0.6, 0.8]], dtype=torch.float32)
+    with torch.no_grad(x):
+        y=model(x)
 
-
-def main() -> None:
-    model = build_model()
-    x = demo_input()
-
-    with torch.no_grad():
-        output = model(x)
-
-    print("input shape:", tuple(x.shape))
-    print("output shape:", tuple(output.shape))
-    print("output value:", output.numpy())
+    print("final output:", y)
 
 
 if __name__ == "__main__":
     main()
+
+
