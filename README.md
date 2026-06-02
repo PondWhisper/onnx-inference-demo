@@ -54,6 +54,16 @@ onnx-inference-demo/
 └── interview_qa.md
 ```
 
+## Progress
+
+- [x] Run PyTorch minimal inference
+- [x] Save and load PyTorch model
+- [x] Export PyTorch model to ONNX
+- [x] Visualize ONNX graph
+- [x] Run inference with ONNX Runtime
+- [ ] Benchmark PyTorch vs ONNX Runtime
+- [ ] Understand CANN / Ascend inference path
+
 ## 环境安装
 
 建议使用虚拟环境：
@@ -88,6 +98,27 @@ model.onnx
 
 ```bash
 python src/infer_onnxruntime.py
+```
+
+## ONNX Runtime Inference
+
+```bash
+python src/infer_onnxruntime.py
+```
+
+This script loads `model.onnx` with ONNX Runtime and runs inference with a NumPy input.
+
+---
+
+# ONNX Runtime 学习块完成标准
+
+```text
+1. pip install onnxruntime numpy 成功
+2. src/infer_onnxruntime.py 能运行
+3. ONNX Runtime 输出 shape 是 [1, 2]
+4. 完成 shape 错误实验
+5. 完成 dtype 错误实验
+6. notes/03_runtime.md 写完
 ```
 
 第 4 步：比较 PyTorch 和 ONNX Runtime 的平均推理耗时。

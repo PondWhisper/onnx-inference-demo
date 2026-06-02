@@ -1,36 +1,28 @@
-import torch
-import torch.nn as nn
-
-
-class SimpleModel(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(4, 8),
-            nn.ReLU(),
-            nn.Linear(8, 2),
-        )
-
-    def forward(self, x):
-        return self.net(x)
+import onnxruntime as ort
+import numpy as np
 
 
 def main():
-    model = SimpleModel()
-    model.eval()
+    session = ort.InferenceSession("model.onnx")
 
-    dummy_input = torch.randn(1, 4)
+    input_name = session.get_inputs()[0].name
+    output_name = session.get_outputs()[0].name
 
-    torch.onnx.export(
-        model,
-        dummy_input,
-        "model.onnx",
-        input_names=["input"],
-        output_names=["output"],
-        opset_version=17,
-    )
+    print("input name", input_name)
+    print("output name", output_name)
 
-    print("Exported model.onnx")
+    x = np.random.randn(2, 4).astype(np.flaot32)
+
+    print("input shape", x.shape)
+    print("input dtype", x.dtype)
+
+    outputs = session.run([output_name], {input_name: x})
+
+    y = outputs[0]
+
+    print("output", y)
+    print("output shape", y.shape)
+    print("output dtype", y.dtype)
 
 
 if __name__ == "__main__":
