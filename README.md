@@ -193,6 +193,22 @@ Ascend / CANN 推理
 - ATC 是模型转换工具。
 - OM 是 Ascend 侧可执行的离线模型格式。
 
+## CANN / Ascend Inference Path
+
+This project currently runs ONNX inference with ONNX Runtime on CPU.
+
+Based on CANN / Ascend documentation, a possible Ascend deployment path is:
+
+```text
+PyTorch model
+→ ONNX model
+→ ATC conversion
+→ OM model
+→ Ascend / CANN inference
+```
+
+Current limitation: I do not have Ascend hardware or a CANN environment, so this project only implements the PyTorch → ONNX → ONNX Runtime CPU path and documents the Ascend path as a learning note.
+
 ## 项目局限
 
 - 模型非常小，只用于理解流程。
