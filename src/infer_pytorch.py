@@ -26,12 +26,12 @@ class SimpleModel(nn.Module):
 
 
 def main():
-    model = SimpleModel
+    model = SimpleModel()
     model.eval()
 
     x = torch.randn(1, 4)
 
-    with torch.no_grad(x):
+    with torch.no_grad():
         y = model(x)
 
     print("final output:", y)

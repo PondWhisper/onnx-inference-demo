@@ -11,7 +11,7 @@ def main():
     print("input name", input_name)
     print("output name", output_name)
 
-    x = np.random.randn(2, 4).astype(np.flaot32)
+    x = np.random.randn(1, 4).astype(np.float32)
 
     print("input shape", x.shape)
     print("input dtype", x.dtype)

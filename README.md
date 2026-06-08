@@ -1,37 +1,46 @@
 # ONNX Inference Demo
 
-本项目用于验证我是否适合继续探索 AI Infra / CANN / 模型推理方向。它从一个最小 PyTorch 模型开始，依次完成 ONNX 导出、ONNX Runtime 推理和简单 latency benchmark，并整理 CANN / Ascend 推理链路的学习笔记。
+这个项目用于整理一个最小模型推理部署链路：从 PyTorch 定义并运行模型，到导出 ONNX，再到使用 ONNX Runtime 在 CPU 上执行推理，并进一步理解它和 CANN / Ascend 推理链路之间的关系。
+
+项目目标不是做复杂模型，而是证明我理解模型从训练框架走向推理 Runtime 的基本过程，并能把这个过程整理成面试官能看懂的项目说明。
 
 ## 项目背景
 
-我想通过一个小项目理解模型推理部署的基本流程，而不是只停留在概念层面。这个项目不追求复杂模型或高性能结果，而是追求把一条完整链路跑通：
+在模型训练阶段，PyTorch 很适合做模型定义、调试和训练。但真实部署时，模型往往需要脱离训练框架，交给专门的推理 Runtime 或硬件后端执行。因此我用这个项目跑通一条基础链路：
 
 ```text
-PyTorch 模型
--> 导出 ONNX
--> ONNX Runtime 推理
--> benchmark 测延迟
--> 理解 CANN / Ascend 在哪里
--> 整理成面试能讲的项目
+PyTorch model
+-> ONNX model
+-> ONNX Runtime inference
+-> Benchmark
+-> CANN / Ascend inference path understanding
 ```
+
+这条链路可以帮助我理解：
+
+- PyTorch 模型如何完成最小推理。
+- 为什么要把模型导出为 ONNX。
+- Runtime 如何加载模型并执行计算图。
+- 推理场景为什么关注 latency 和 throughput。
+- CANN / Ascend 部署链路中 ONNX、ATC、OM 的位置。
 
 ## 技术路线
 
 ```text
 PyTorch
-  负责定义模型，并完成第一次本地推理
+  定义 SimpleModel，并完成一次最小推理。
 
 ONNX
-  作为模型中间表示，让模型从 PyTorch 框架中导出
+  将 PyTorch 模型导出为通用中间表示 model.onnx。
 
 ONNX Runtime
-  负责加载 ONNX 模型，并执行推理
+  在 CPU 上加载 model.onnx，并用 NumPy 输入执行推理。
 
 Benchmark
-  对 PyTorch 和 ONNX Runtime 的推理耗时做简单比较
+  比较 PyTorch 和 ONNX Runtime 的平均推理延迟。
 
 CANN / Ascend
-  当前项目不直接依赖 Ascend 硬件，但会理解 ONNX 到 OM、再到 Ascend 推理的部署链路
+  基于当前 ONNX Demo，理解 PyTorch -> ONNX -> ATC -> OM -> Ascend/CANN 的部署路径。
 ```
 
 ## 目录结构
@@ -42,6 +51,7 @@ onnx-inference-demo/
 ├── requirements.txt
 ├── src/
 │   ├── infer_pytorch.py
+│   ├── save_load_pytorch.py
 │   ├── export_onnx.py
 │   ├── infer_onnxruntime.py
 │   └── benchmark.py
@@ -66,23 +76,33 @@ onnx-inference-demo/
 
 ## 环境安装
 
-建议使用虚拟环境：
-
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+如果只运行 ONNX Runtime 推理，至少需要：
+
+```bash
+pip install onnxruntime numpy
+```
+
 ## 运行方式
 
-第 1 步：运行 PyTorch 推理。
+运行 PyTorch 最小推理：
 
 ```bash
 python src/infer_pytorch.py
 ```
 
-第 2 步：导出 ONNX 模型。
+保存并加载 PyTorch 模型：
+
+```bash
+python src/save_load_pytorch.py
+```
+
+导出 ONNX 模型：
 
 ```bash
 python src/export_onnx.py
@@ -94,10 +114,16 @@ python src/export_onnx.py
 model.onnx
 ```
 
-第 3 步：使用 ONNX Runtime 推理。
+使用 ONNX Runtime 推理：
 
 ```bash
 python src/infer_onnxruntime.py
+```
+
+运行 benchmark：
+
+```bash
+python src/benchmark.py
 ```
 
 ## ONNX Runtime Inference
@@ -108,9 +134,7 @@ python src/infer_onnxruntime.py
 
 This script loads `model.onnx` with ONNX Runtime and runs inference with a NumPy input.
 
----
-
-# ONNX Runtime 学习块完成标准
+ONNX Runtime 学习块完成标准：
 
 ```text
 1. pip install onnxruntime numpy 成功
@@ -121,15 +145,9 @@ This script loads `model.onnx` with ONNX Runtime and runs inference with a NumPy
 6. notes/03_runtime.md 写完
 ```
 
-第 4 步：比较 PyTorch 和 ONNX Runtime 的平均推理耗时。
-
-```bash
-python src/benchmark.py
-```
-
 ## 推理结果
 
-`src/infer_pytorch.py` 会打印：
+PyTorch 推理会打印模型输入输出信息，例如：
 
 ```text
 input shape
@@ -137,7 +155,7 @@ output shape
 output value
 ```
 
-`src/infer_onnxruntime.py` 会打印：
+ONNX Runtime 推理会打印模型输入名、输出名、shape 和输出值，例如：
 
 ```text
 input name
@@ -147,53 +165,46 @@ output shape
 output value
 ```
 
-输出数值不要求有业务含义，因为模型权重是随机初始化的。这个阶段重点是理解模型输入输出、shape 和推理执行过程。
+当前模型是一个很小的全连接网络，权重没有训练过，所以输出值本身没有业务含义。这个阶段重点是确认模型能被正确加载、输入 shape 正确、推理链路能跑通。
 
 ## Benchmark 结果
 
-`src/benchmark.py` 会分别运行 PyTorch 和 ONNX Runtime 推理多次，并打印平均 latency：
+当前环境缺少 `onnxruntime`，因此暂不填写真实 benchmark 数值。安装依赖并运行 `python src/benchmark.py` 后，可以把结果补充到下表：
+
+| Runtime | Runs | Average latency |
+| --- | ---: | ---: |
+| PyTorch | 1000 | 待补充 |
+| ONNX Runtime CPU | 1000 | 待补充 |
+
+这个 benchmark 只是入门实验，不代表真实生产性能。模型很小，耗时可能主要来自 Python 调用、框架调度和 Runtime 开销。它的意义是让我开始关注 latency、warmup、重复运行和运行环境这些推理性能测试里的基本问题。
+
+## ONNX 图里的算子
+
+当前模型结构是：
 
 ```text
-PyTorch average latency:      x.xxxx ms
-ONNX Runtime average latency: x.xxxx ms
+Linear(4 -> 8)
+ReLU
+Linear(8 -> 2)
 ```
 
-这个 benchmark 只是入门实验，不代表真实生产性能。它的意义是让我开始关注推理场景里的 latency、warmup、repeat 次数和运行环境。
-
-## CANN / Ascend 链路理解
-
-当前项目跑通的是：
+导出到 ONNX 后，图里的主要算子是：
 
 ```text
-PyTorch 模型
-↓
-ONNX 模型
-↓
-ONNX Runtime 推理
-```
-
-如果继续走向 Ascend / CANN 部署，链路通常会变成：
-
-```text
-PyTorch 模型
-↓
-ONNX 模型
-↓
-ATC 转换
-↓
-OM 模型
-↓
-Ascend / CANN 推理
+Gemm
+Relu
+Gemm
 ```
 
 其中：
 
-- Ascend 是华为昇腾 AI 处理器。
-- CANN 是面向 Ascend 的异构计算架构和软件栈。
-- ATC 是模型转换工具。
-- OM 是 Ascend 侧可执行的离线模型格式。
+- `Gemm` 可以理解为全连接层里的矩阵乘法加 bias，对应 PyTorch 里的 `Linear`。
+- `Relu` 对应 PyTorch 里的 `ReLU` 激活函数。
+- ONNX 文件不仅保存模型结构，也保存 weight、bias 等参数。
 
-## CANN / Ascend Inference Path
+这说明 PyTorch 里的模型层在导出后会变成 ONNX 计算图中的算子节点。Runtime 执行模型时，本质上是在按照计算图依次执行这些算子。
+
+## CANN / Ascend 推理链路
 
 This project currently runs ONNX inference with ONNX Runtime on CPU.
 
@@ -201,26 +212,43 @@ Based on CANN / Ascend documentation, a possible Ascend deployment path is:
 
 ```text
 PyTorch model
-→ ONNX model
-→ ATC conversion
-→ OM model
-→ Ascend / CANN inference
+-> ONNX model
+-> ATC conversion
+-> OM model
+-> Ascend / CANN inference
 ```
 
-Current limitation: I do not have Ascend hardware or a CANN environment, so this project only implements the PyTorch → ONNX → ONNX Runtime CPU path and documents the Ascend path as a learning note.
+对应关系：
 
-## 项目局限
+- `Ascend` 是华为昇腾 AI 处理器。
+- `CANN` 是面向 Ascend 的 AI 计算软件栈。
+- `ATC` 是模型转换工具，可以把 ONNX 等模型转换为 Ascend 可执行的 OM 模型。
+- `OM` 是 Ascend 侧用于推理执行的离线模型格式。
 
-- 模型非常小，只用于理解流程。
-- 没有训练过程，只关注推理。
-- benchmark 没有覆盖真实 batch、真实数据和复杂模型。
-- 当前没有 Ascend 硬件，因此没有实际完成 ONNX -> OM 和 Ascend 推理。
-- 对 CANN 的理解目前停留在部署链路和概念层面，还需要继续补充算子、内存、图优化和硬件执行相关知识。
+当前项目已经实现的是：
 
-## 下一步
+```text
+PyTorch
+-> ONNX
+-> ONNX Runtime CPU inference
+```
 
-- 使用一个真实模型，例如 MNIST MLP、ResNet 或 MobileNet。
-- 对比不同 batch size 下的 latency 和 throughput。
-- 学习 ONNX 模型结构，查看计算图和算子。
-- 继续学习 CANN、ATC、OM、Ascend Runtime。
-- 如果有 Ascend 环境，补充 ONNX -> OM -> Ascend 推理实验。
+当前项目没有实际实现的是：
+
+```text
+ONNX
+-> ATC
+-> OM
+-> Ascend / CANN inference
+```
+
+## 当前局限
+
+- 没有 Ascend 硬件。
+- 没有 CANN 开发和运行环境。
+- 没有实际运行 ATC 模型转换。
+- 没有生成 OM 模型。
+- 没有在 Ascend NPU 上执行推理。
+- 当前 benchmark 只计划比较 CPU 上的 PyTorch 和 ONNX Runtime，不能代表 Ascend/CANN 性能。
+
+因此，这个项目的边界是：我完成了 PyTorch -> ONNX -> ONNX Runtime CPU 推理链路，并把 Ascend/CANN 推理路径作为学习笔记整理出来，但还没有完成真实 Ascend 部署。
