@@ -71,8 +71,8 @@ onnx-inference-demo/
 - [x] Export PyTorch model to ONNX
 - [x] Visualize ONNX graph
 - [x] Run inference with ONNX Runtime
-- [ ] Benchmark PyTorch vs ONNX Runtime
-- [ ] Understand CANN / Ascend inference path
+- [x] Benchmark PyTorch vs ONNX Runtime across different batch sizes
+- [x] Understand CANN / Ascend inference path
 
 ## 环境安装
 
@@ -126,6 +126,15 @@ python src/infer_onnxruntime.py
 python src/benchmark.py
 ```
 
+本机项目已包含 `.venv`，面试现场演示可以直接运行：
+
+```bash
+.venv/bin/python src/infer_pytorch.py
+.venv/bin/python src/export_onnx.py
+.venv/bin/python src/infer_onnxruntime.py
+.venv/bin/python src/benchmark.py
+```
+
 ## ONNX Runtime Inference
 
 ```bash
@@ -169,14 +178,18 @@ output value
 
 ## Benchmark 结果
 
-当前环境缺少 `onnxruntime`，因此暂不填写真实 benchmark 数值。安装依赖并运行 `python src/benchmark.py` 后，可以把结果补充到下表：
+`src/benchmark.py` 会在不同 batch size 下分别测试 PyTorch 和 ONNX Runtime CPU 的平均推理延迟。每个 batch size 先 warmup 20 次，再计时运行 1000 次。
 
-| Runtime | Runs | Average latency |
-| --- | ---: | ---: |
-| PyTorch | 1000 | 待补充 |
-| ONNX Runtime CPU | 1000 | 待补充 |
+最近一次本机运行结果：
 
-这个 benchmark 只是入门实验，不代表真实生产性能。模型很小，耗时可能主要来自 Python 调用、框架调度和 Runtime 开销。它的意义是让我开始关注 latency、warmup、重复运行和运行环境这些推理性能测试里的基本问题。
+| Batch size | PyTorch avg latency (ms) | ONNX Runtime CPU avg latency (ms) |
+| ---: | ---: | ---: |
+| 1 | 0.007437 | 0.002461 |
+| 8 | 0.007704 | 0.003107 |
+| 32 | 0.007559 | 0.002929 |
+| 128 | 0.009327 | 0.003753 |
+
+这个 benchmark 只是入门实验，不代表真实生产性能。模型很小，耗时可能主要来自 Python 调用、框架调度和 Runtime 开销。它的意义是让我开始关注 latency、warmup、重复运行、batch size 和运行环境这些推理性能测试里的基本问题。
 
 ## ONNX 图里的算子
 

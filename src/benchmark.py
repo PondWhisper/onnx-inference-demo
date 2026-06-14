@@ -15,14 +15,14 @@ class SimpleModel(nn.Module):
         return self.net(x)
 
 
-def benchmark_pytorch(runs: int = 1000) -> float:
+def benchmark_pytorch(batch_size: int, runs: int = 1000, warmup: int = 20) -> float:
     model = SimpleModel()
     model.eval()
 
-    x = torch.randn(1, 4)
+    x = torch.randn(batch_size, 4)
 
     with torch.no_grad():
-        for _ in range(10):
+        for _ in range(warmup):
             model(x)
 
     start = time.perf_counter()
@@ -33,19 +33,19 @@ def benchmark_pytorch(runs: int = 1000) -> float:
 
     end = time.perf_counter()
 
-    avg_lantency_ms = (end - start) / runs * 1000
-    return avg_lantency_ms
+    avg_latency_ms = (end - start) / runs * 1000
+    return avg_latency_ms
 
 
-def benchmark_onnx(runs: int = 1000) -> float:
+def benchmark_onnx(batch_size: int, runs: int = 1000, warmup: int = 20) -> float:
     session = ort.InferenceSession("model.onnx")
 
     input_name = session.get_inputs()[0].name
     output_name = session.get_outputs()[0].name
 
-    x = np.random.randn(1, 4).astype(np.float32)
+    x = np.random.randn(batch_size, 4).astype(np.float32)
 
-    for _ in range(10):
+    for _ in range(warmup):
         session.run([output_name], {input_name: x})
 
     start = time.perf_counter()
@@ -61,10 +61,15 @@ def benchmark_onnx(runs: int = 1000) -> float:
 
 def main():
     runs = 1000
+    batch_sizes = [1, 8, 32, 128]
 
-    print(f"Runs:{runs}.")
-    print(f"benchmark_pytorch:{benchmark_pytorch(runs): .6f}ms")
-    print(f"benchmark_pytorch:{benchmark_onnx(runs): .6f}ms")
+    print(f"Runs per batch size: {runs}")
+    print("| Batch size | PyTorch avg latency (ms) | ONNX Runtime CPU avg latency (ms) |")
+    print("| ---: | ---: | ---: |")
+    for batch_size in batch_sizes:
+        pytorch_latency = benchmark_pytorch(batch_size, runs)
+        onnx_latency = benchmark_onnx(batch_size, runs)
+        print(f"| {batch_size} | {pytorch_latency:.6f} | {onnx_latency:.6f} |")
 
 
 if __name__ == "__main__":
